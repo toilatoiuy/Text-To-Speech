@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Xuân Lai Radio Studio 5.0</title>
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<h1>🎙 Xuân Lai Radio Studio 5.0</h1>
+
+<textarea id="textInput">
+Kính chào quý thầy cô và các bạn học sinh thân mến...
+
+Hôm nay Liên đội xin gửi tới các bạn chương trình phát thanh tuần này.
+</textarea>
+
+<div class="controls">
+<select id="voiceSelect">
+<option value="vi-VN-Standard-B">Nam</option>
+<option value="vi-VN-Standard-A">Nữ</option>
+</select>
+
+<label>Tốc độ:</label>
+<input type="range" id="rate" min="0.9" max="1.1" step="0.01" value="0.95">
+<span id="rateValue">0.95</span>
+
+<br><br>
+
+<button onclick="generateProgram()">🎧 Tạo & Mix</button>
+<button onclick="downloadWav()">💾 Tải WAV hoàn chỉnh</button>
+</div>
+
+<div id="status">Sẵn sàng</div>
+
+<script src="script.js"></script>
+</body>
+</html>
