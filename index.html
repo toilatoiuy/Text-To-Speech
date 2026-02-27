@@ -1,40 +1,79 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Xuân Lai Radio Studio 5.0</title>
+<title>Studio Liên đội Xuân Lai 8.0 PRO</title>
 <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-<h1>🎙 Xuân Lai Radio Studio 5.0</h1>
+<header>
+  <img src="logo.png" class="logo">
+  <div>
+    <h1>STUDIO LIÊN ĐỘI XUÂN LAI</h1>
+    <p>Radio System 8.0 PRO</p>
+  </div>
+</header>
 
-<textarea id="textInput">
-Kính chào quý thầy cô và các bạn học sinh thân mến...
+<div class="main">
 
-Hôm nay Liên đội xin gửi tới các bạn chương trình phát thanh tuần này.
-</textarea>
+<textarea id="textInput" placeholder="Nhập nội dung phát thanh..."></textarea>
 
-<div class="controls">
-<select id="voiceSelect">
-<option value="vi-VN-Standard-B">Nam</option>
-<option value="vi-VN-Standard-A">Nữ</option>
-</select>
-
-<label>Tốc độ:</label>
-<input type="range" id="rate" min="0.9" max="1.1" step="0.01" value="0.95">
-<span id="rateValue">0.95</span>
-
-<br><br>
-
-<button onclick="generateProgram()">🎧 Tạo & Mix</button>
-<button onclick="downloadWav()">💾 Tải WAV hoàn chỉnh</button>
+<div class="templates">
+  <button onclick="loadTemplate('8-3')">Mẫu 8/3</button>
+  <button onclick="loadTemplate('26-3')">Mẫu 26/3</button>
 </div>
 
-<div id="status">Sẵn sàng</div>
+<div class="mixer">
+
+<div>
+<label>Giọng đọc</label>
+<select id="voiceSelect">
+<option value="vi-VN-Wavenet-A">Nam trầm</option>
+<option value="vi-VN-Wavenet-B">Nữ chuẩn</option>
+<option value="vi-VN-Wavenet-C">Nữ trẻ</option>
+<option value="vi-VN-Wavenet-D">Nam trẻ</option>
+</select>
+</div>
+
+<div>
+<label>Tốc độ</label>
+<input type="range" id="rate" min="0.8" max="1.2" step="0.05" value="1">
+</div>
+
+<div>
+<label>Volume Giọng</label>
+<input type="range" id="voiceVol" min="0.5" max="1.5" step="0.1" value="1">
+</div>
+
+<div>
+<label>Volume Nhạc</label>
+<input type="range" id="musicVol" min="0.1" max="1" step="0.1" value="0.4">
+</div>
+
+<div>
+<label>Master</label>
+<input type="range" id="masterVol" min="0.5" max="1.5" step="0.1" value="1">
+</div>
+
+</div>
+
+<div class="controls">
+<button onclick="generateProgram()">TẠO CHƯƠNG TRÌNH</button>
+<button onclick="downloadWav()">XUẤT WAV</button>
+<button onclick="scheduleProgram()">HẸN GIỜ PHÁT</button>
+</div>
+
+<input type="datetime-local" id="scheduleTime">
+
+<h3>Thư viện</h3>
+<div id="library"></div>
+
+<div id="status"></div>
+<div id="timer">00:00</div>
+
+</div>
 
 <script src="script.js"></script>
 </body>
-
 </html>
