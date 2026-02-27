@@ -34,8 +34,8 @@ const masterVol=parseFloat(document.getElementById("masterVol").value);
 
 const paragraphs=splitParagraphs(text);
 
-const intro=await loadAudio("audio/intro.mp3");
-const music=await loadAudio("audio/nhacnen.mp3");
+const intro = await loadAudio("./audio/intro.mp3");
+const music = await loadAudio("./audio/nhacnen.mp3");
 
 let buffers=[intro];
 
@@ -184,3 +184,4 @@ alert("Đã phát chương trình!");
 },1000);
 alert("Đã hẹn giờ!");
 }
+
