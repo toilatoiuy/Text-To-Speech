@@ -1,220 +1,186 @@
-// ===============================
-// XUÂN LAI RADIO STUDIO 5.1
-// Mix thật + Nhạc giữa đoạn + Nhạc kết 5 giây fade out
-// ===============================
+let finalBuffer=null;
+let audioContext;
 
-const apiKey = "AIzaSyBuKGFdtIVVNdBcZr4VsNhAg2cj3R1kukk";
-
-let finalBuffer = null;
-
-document.getElementById("rate").oninput = function(){
-  document.getElementById("rateValue").innerText = this.value;
-};
-
-// ===============================
-// GỌI GOOGLE TTS
-// ===============================
-async function tts(text, voiceName, rate){
-
-  const response = await fetch(
-    `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        input: { text: text },
-        voice: { languageCode: "vi-VN", name: voiceName },
-        audioConfig: {
-          audioEncoding: "MP3",
-          speakingRate: rate,
-          pitch: 0
-        }
-      })
-    }
-  );
-
-  const data = await response.json();
-
-  if(!data.audioContent){
-    alert("Lỗi API hoặc Billing.");
-    throw new Error("TTS failed");
-  }
-
-  return data.audioContent;
+async function tts(text,voice,rate){
+const res=await fetch("/.netlify/functions/tts",{
+method:"POST",
+body:JSON.stringify({text,voice,rate})
+});
+const data=await res.json();
+return data.audioContent;
 }
 
-// ===============================
-// LOAD FILE MP3
-// ===============================
-async function loadAudio(context, url){
-  const response = await fetch(url);
-  const arrayBuffer = await response.arrayBuffer();
-  return await context.decodeAudioData(arrayBuffer);
+async function loadAudio(url){
+const res=await fetch(url);
+const buf=await res.arrayBuffer();
+return await audioContext.decodeAudioData(buf);
 }
 
-// ===============================
-// TẠO CHƯƠNG TRÌNH HOÀN CHỈNH
-// ===============================
+function splitParagraphs(text){
+return text.split(/\n+/).filter(p=>p.trim()!="");
+}
+
 async function generateProgram(){
 
-  document.getElementById("status").innerText = "Đang tạo chương trình...";
+document.getElementById("status").innerText="Đang xử lý...";
+audioContext=new(window.AudioContext||window.webkitAudioContext)();
 
-  const text = document.getElementById("textInput").value;
-  const voiceName = document.getElementById("voiceSelect").value;
-  const rate = parseFloat(document.getElementById("rate").value);
+const text=document.getElementById("textInput").value;
+const voice=document.getElementById("voiceSelect").value;
+const rate=parseFloat(document.getElementById("rate").value);
+const voiceVol=parseFloat(document.getElementById("voiceVol").value);
+const musicVol=parseFloat(document.getElementById("musicVol").value);
+const masterVol=parseFloat(document.getElementById("masterVol").value);
 
-  const paragraphs = text.split("\n").filter(p => p.trim() !== "");
+const paragraphs=splitParagraphs(text);
 
-  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+const intro=await loadAudio("audio/intro.mp3");
+const music=await loadAudio("audio/nhacnen.mp3");
 
-  const introBuffer = await loadAudio(audioContext, "intro.mp3");
-  const musicBuffer = await loadAudio(audioContext, "nhacnen.mp3");
-  const midBuffer = await loadAudio(audioContext, "mid.mp3");
+let buffers=[intro];
 
-  let buffers = [];
-
-  // 1. Intro
-  buffers.push(introBuffer);
-
-  // 2. Các đoạn giọng + nhạc giữa
-  for(let i = 0; i < paragraphs.length; i++){
-
-    const voiceBase64 = await tts(paragraphs[i], voiceName, rate);
-    const voiceArray = Uint8Array.from(atob(voiceBase64), c => c.charCodeAt(0));
-    const voiceBuffer = await audioContext.decodeAudioData(voiceArray.buffer);
-
-    buffers.push(voiceBuffer);
-
-    if(i < paragraphs.length - 1){
-      buffers.push(midBuffer);
-    }
-  }
-
-  // ===============================
-  // TÍNH TỔNG THỜI LƯỢNG
-  // ===============================
-
-  let totalLength = buffers.reduce((sum, b) => sum + b.length, 0);
-
-  // cộng thêm 5 giây nhạc kết
-  const fadeDuration = 5;
-  const sampleRate = audioContext.sampleRate;
-  const fadeSamples = fadeDuration * sampleRate;
-
-  totalLength += fadeSamples;
-
-  finalBuffer = audioContext.createBuffer(
-    2,
-    totalLength,
-    sampleRate
-  );
-
-  let offset = 0;
-
-  // ===============================
-  // GHÉP CÁC BUFFER CHÍNH
-  // ===============================
-
-  buffers.forEach(buffer => {
-    for(let ch = 0; ch < 2; ch++){
-      finalBuffer
-        .getChannelData(ch)
-        .set(
-          buffer.getChannelData(ch % buffer.numberOfChannels),
-          offset
-        );
-    }
-    offset += buffer.length;
-  });
-
-  // ===============================
-  // NHẠC KẾT 5 GIÂY FADE OUT
-  // ===============================
-
-  for(let ch = 0; ch < 2; ch++){
-
-    const channelData = finalBuffer.getChannelData(ch);
-    const musicData = musicBuffer.getChannelData(
-      ch % musicBuffer.numberOfChannels
-    );
-
-    for(let i = 0; i < fadeSamples; i++){
-
-      const fadeFactor = 1 - (i / fadeSamples); // giảm dần
-      const sample = musicData[i] * fadeFactor * 0.7; // 70% volume
-
-      channelData[offset + i] = sample;
-    }
-  }
-
-  document.getElementById("status").innerText =
-    "Hoàn thành. Có nhạc kết 5 giây fade out.";
+for(let p of paragraphs){
+const base64=await tts(p,voice,rate);
+const arr=Uint8Array.from(atob(base64),c=>c.charCodeAt(0));
+const voiceBuf=await audioContext.decodeAudioData(arr.buffer);
+buffers.push(voiceBuf);
 }
 
-// ===============================
-// XUẤT WAV
-// ===============================
+let totalLength=buffers.reduce((s,b)=>s+b.length,0)+music.length;
+
+finalBuffer=audioContext.createBuffer(2,totalLength,audioContext.sampleRate);
+
+let offset=0;
+
+buffers.forEach(buf=>{
+for(let ch=0;ch<2;ch++){
+finalBuffer.getChannelData(ch).set(
+buf.getChannelData(ch%buf.numberOfChannels).map(v=>v*voiceVol*masterVol),
+offset);
+}
+offset+=buf.length;
+});
+
+let fadeSamples=audioContext.sampleRate*5;
+
+for(let ch=0;ch<2;ch++){
+let data=finalBuffer.getChannelData(ch);
+let musicData=music.getChannelData(ch%music.numberOfChannels);
+
+for(let i=0;i<musicData.length;i++){
+let pos=i;
+let duck=0.4;
+data[pos]+=musicData[i]*musicVol*duck;
+}
+
+for(let i=0;i<fadeSamples;i++){
+let pos=offset+i;
+if(pos<data.length){
+let fade=1-(i/fadeSamples);
+data[pos]+=musicData[i]*0.7*fade;
+}
+}
+}
+
+saveToLibrary(text);
+document.getElementById("status").innerText="Hoàn thành!";
+}
+
 function downloadWav(){
+if(!finalBuffer){alert("Chưa tạo chương trình");return;}
 
-  if(!finalBuffer){
-    alert("Chưa tạo chương trình.");
-    return;
-  }
-
-  const wavBlob = bufferToWave(finalBuffer, finalBuffer.length);
-
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(wavBlob);
-  link.download = "radio_xuan_lai_full.wav";
-  link.click();
+const blob=bufferToWave(finalBuffer,finalBuffer.length);
+const link=document.createElement("a");
+const date=new Date().toISOString().split("T")[0];
+link.download=`phat_thanh_${date}.wav`;
+link.href=URL.createObjectURL(blob);
+link.click();
 }
 
-// ===============================
-// CHUYỂN BUFFER → WAV
-// ===============================
-function bufferToWave(abuffer, len){
+function bufferToWave(abuffer,len){
+const numOfChan=abuffer.numberOfChannels;
+const length=len*numOfChan*2+44;
+const buffer=new ArrayBuffer(length);
+const view=new DataView(buffer);
+const channels=[];
+let offset=0,pos=0;
 
-  const numOfChan = abuffer.numberOfChannels;
-  const length = len * numOfChan * 2 + 44;
-  const buffer = new ArrayBuffer(length);
-  const view = new DataView(buffer);
-  const channels = [];
-  const sampleRate = abuffer.sampleRate;
+function setUint16(data){view.setUint16(pos,data,true);pos+=2;}
+function setUint32(data){view.setUint32(pos,data,true);pos+=4;}
 
-  let offset = 0;
-  let pos = 0;
+setUint32(0x46464952);
+setUint32(length-8);
+setUint32(0x45564157);
+setUint32(0x20746d66);
+setUint32(16);
+setUint16(1);
+setUint16(numOfChan);
+setUint32(abuffer.sampleRate);
+setUint32(abuffer.sampleRate*2*numOfChan);
+setUint16(numOfChan*2);
+setUint16(16);
+setUint32(0x61746164);
+setUint32(length-pos-4);
 
-  function setUint16(data){ view.setUint16(pos, data, true); pos += 2; }
-  function setUint32(data){ view.setUint32(pos, data, true); pos += 4; }
+for(let i=0;i<abuffer.numberOfChannels;i++)
+channels.push(abuffer.getChannelData(i));
 
-  setUint32(0x46464952);
-  setUint32(length - 8);
-  setUint32(0x45564157);
+while(pos<length){
+for(let i=0;i<numOfChan;i++){
+let sample=Math.max(-1,Math.min(1,channels[i][offset]));
+sample=sample<0?sample*0x8000:sample*0x7FFF;
+view.setInt16(pos,sample,true);
+pos+=2;
+}
+offset++;
+}
+return new Blob([buffer],{type:"audio/wav"});
+}
 
-  setUint32(0x20746d66);
-  setUint32(16);
-  setUint16(1);
-  setUint16(numOfChan);
-  setUint32(sampleRate);
-  setUint32(sampleRate * 2 * numOfChan);
-  setUint16(numOfChan * 2);
-  setUint16(16);
+function saveToLibrary(text){
+let lib=JSON.parse(localStorage.getItem("radioLib"))||[];
+lib.unshift({text,date:new Date().toLocaleString()});
+localStorage.setItem("radioLib",JSON.stringify(lib));
+renderLibrary();
+}
 
-  setUint32(0x61746164);
-  setUint32(length - pos - 4);
+function renderLibrary(){
+let lib=JSON.parse(localStorage.getItem("radioLib"))||[];
+let html="";
+lib.forEach((item,i)=>{
+html+=`<div><b>${item.date}</b>
+<button onclick="loadLib(${i})">Tải</button></div>`;
+});
+document.getElementById("library").innerHTML=html;
+}
 
-  for(let i = 0; i < abuffer.numberOfChannels; i++)
-    channels.push(abuffer.getChannelData(i));
+function loadLib(i){
+let lib=JSON.parse(localStorage.getItem("radioLib"));
+document.getElementById("textInput").value=lib[i].text;
+}
 
-  while(pos < length){
-    for(let i = 0; i < numOfChan; i++){
-      let sample = Math.max(-1, Math.min(1, channels[i][offset]));
-      sample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
-      view.setInt16(pos, sample, true);
-      pos += 2;
-    }
-    offset++;
-  }
+renderLibrary();
 
-  return new Blob([buffer], { type: "audio/wav" });
+function loadTemplate(type){
+if(type==="8-3"){
+document.getElementById("textInput").value=
+"Kính chào quý thầy cô và các bạn. Hôm nay, Liên đội Xuân Lai chào mừng ngày 8 tháng 3...";
+}
+if(type==="26-3"){
+document.getElementById("textInput").value=
+"Chào mừng ngày 26 tháng 3 – ngày thành lập Đoàn TNCS Hồ Chí Minh...";
+}
+}
+
+function scheduleProgram(){
+const time=document.getElementById("scheduleTime").value;
+const target=new Date(time).getTime();
+const interval=setInterval(()=>{
+if(new Date().getTime()>=target){
+generateProgram();
+clearInterval(interval);
+alert("Đã phát chương trình!");
+}
+},1000);
+alert("Đã hẹn giờ!");
 }
