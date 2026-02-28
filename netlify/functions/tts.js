@@ -1,44 +1,42 @@
 const OpenAI = require("openai");
 
-exports.handler = async function (event) {
-  try {
-    const { text } = JSON.parse(event.body);
+exports.handler = async (event) => {
 
-    if (!text) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: "Missing text" }),
-      };
-    }
+  try {
+
+    const { text, voice, rate } = JSON.parse(event.body);
 
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
 
-    const response = await openai.audio.speech.create({
+    const mp3 = await openai.audio.speech.create({
       model: "gpt-4o-mini-tts",
-      voice: "alloy",
+      voice: voice || "alloy",
       input: text,
     });
 
-    const buffer = Buffer.from(await response.arrayBuffer());
+    const buffer = Buffer.from(await mp3.arrayBuffer());
 
     return {
       statusCode: 200,
       headers: {
-        "Content-Type": "audio/mpeg",
+        "Content-Type": "application/json"
       },
-      body: buffer.toString("base64"),
-      isBase64Encoded: true,
+      body: JSON.stringify({
+        audioContent: buffer.toString("base64")
+      })
     };
+
   } catch (error) {
-    console.error("TTS ERROR:", error);
 
     return {
       statusCode: 500,
       body: JSON.stringify({
-        error: error.message,
-      }),
+        error: error.message
+      })
     };
+
   }
+
 };
