@@ -3,7 +3,7 @@ let audioContext;
 
 // ====== TTS FUNCTION ======
 async function tts(text, voice, rate) {
-  const res = await fetch("/.netlify/functions/tts", {
+  const res = await fetch("/api/tts", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -229,5 +229,6 @@ function scheduleProgram() {
   }, 1000);
   alert("Đã hẹn giờ!");
 }
+
 
 
