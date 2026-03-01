@@ -54,8 +54,8 @@ async function generateProgram() {
 
     const paragraphs = splitParagraphs(text);
 
-    const intro = await loadAudio("./audio/intro.mp3");
-    const music = await loadAudio("./audio/nhacnen.mp3");
+    const intro = await loadAudio("/audio/intro.mp3");
+    const music = await loadAudio("/audio/nhacnen.mp3");
 
     let buffers = [intro];
 
@@ -229,3 +229,4 @@ function scheduleProgram() {
   }, 1000);
   alert("Đã hẹn giờ!");
 }
+
